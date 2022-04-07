@@ -3,6 +3,11 @@
 
 typedef struct {
     union {
+        struct {
+            unsigned int mantissa : 23;
+            unsigned int exponent : 8;
+            unsigned int sign : 1;
+        };
         uint32_t i;
         float f;
     };
@@ -16,8 +21,8 @@ void PrintFloatBits(FloatView f, uint8_t decimal_places) {
     // Print actual float number
     printf("%0.*f\n", decimal_places, f.f);
 
-    uint32_t is_negative = f.i & (1 << 31);
-    printf(is_negative ? "[1] " : "[0] ");
+    // uint32_t is_negative = f.i & (1 << 31);
+    printf(f.sign ? "[1] " : "[0] ");
 
     printf("[");
     for(int i = 30; i > 22; --i) {
@@ -32,10 +37,13 @@ void PrintFloatBits(FloatView f, uint8_t decimal_places) {
     printf("]\n");
 
     // // Print text
-    printf(is_negative ? " -  " : " +  ");
+    printf(f.sign ? " -  " : " +  ");
 
-    uint8_t exponent_value = f.i >> 23;
-    int8_t exponent_value_biased = exponent_value == 0 ? -126 : exponent_value - 127;
+    int8_t exponent_value_biased = f.exponent - 127;
+    if(f.exponent == 0) {
+        exponent_value_biased = -126;
+    }
+
     // Print different number of spaces based on number of decimal digits in biased exponent
     if(exponent_value_biased < 10) {
         printf("   2^%d     ", exponent_value_biased);
@@ -50,7 +58,7 @@ void PrintFloatBits(FloatView f, uint8_t decimal_places) {
     uint32_t mantissa_as_int = f.i & 8388607;
     float two_to_the_negative_23 = 0.00000011920928955078125f;
     float decimal_part = (float)mantissa_as_int * two_to_the_negative_23;
-    if(exponent_value != 0) {
+    if(f.exponent != 0) {
         decimal_part += 1.0f;
     }
     printf("%.23f", decimal_part);
@@ -59,9 +67,10 @@ void PrintFloatBits(FloatView f, uint8_t decimal_places) {
 }
 
 int main() {
-    FloatView f1;
-    f1.f = 0.1f;
-    PrintFloatBits(f1, 100);
+    FloatView f;
+    f.f = 0.0f;
+    f.mantissa = 32;
+    PrintFloatBits(f, 100);
 
     return 0;
 }
