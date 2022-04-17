@@ -1,6 +1,10 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 #include <assert.h>
+
+#define MAX_MANTISSA 16777215LL
 
 typedef struct {
     union {
@@ -74,7 +78,7 @@ void PrintDoubleBits(DoubleView d, uint16_t decimal_places) {
     // else {
     //     printf("   2^%d   ", exponent_value_biased);
     // }
-    double two_to_the_negative_52 = 0.00000000000000022204460492503130808472633361816;;
+    double two_to_the_negative_52 = 0.00000000000000022204460492503130808472633361816;
     double decimal_part = (double)d.mantissa * two_to_the_negative_52;
     if(d.exponent != 0) {
         decimal_part += 1.0f;
@@ -131,10 +135,94 @@ void PrintFloatBits(FloatView f, uint16_t decimal_places) {
     printf("\n");
 }
 
+int IncrementStringNum(char* num, int index) {
+    if(num[index] == '.') {
+        return IncrementStringNum(num, index - 1);
+    }
+    else if(num[index] == '9') {
+        if(index == 0) {
+            return 0;
+        }
+        else {
+            int ret = IncrementStringNum(num, index - 1);
+            if(ret) {
+                num[index] = '0';
+            }
+            return ret;
+        }
+    }
+    else {
+        num[index]++;
+        return 1;
+    }
+}
+
+char* CreateExpString(int num_digits, int exp) {
+    assert(num_digits > 1);
+
+    int temp_exp = exp;
+    int num_exp_digits = 0;
+    while(temp_exp) {
+        ++num_exp_digits;
+        temp_exp /= 10;
+    }
+    
+    int num_chars = num_digits + num_exp_digits + 3;
+    char* s = malloc(sizeof(char) * num_chars);
+    if(!s) {
+        return NULL;
+    }
+
+    s[--num_chars] = '\0';
+    num_chars--;
+    while(exp) {
+        s[num_chars--] = (exp % 10) + '0';
+        exp /= 10;
+    }
+    s[num_chars] = 'e';
+
+    s[0] = '1';
+    s[1] = '.';
+    int i = 2;
+    while(s[i] != 'e') {
+        s[i] = '0';
+        ++i;
+    }
+
+    return s;
+}
+
+int GetIncrementIndex(char* num) {
+    assert(num);
+
+    int i = 0;
+    while(num[i] != 'e') {
+        ++i;
+    }
+    return i-1;
+}
+
 int main() {
-    DoubleView d;
-    d.i64 = 73;
-    PrintDoubleBits(d, 500);
+    int num_digits = 8;
+    int exp = 9;
+    char* num_string = CreateExpString(num_digits, exp);
+    int num_string_len = strlen(num_string);
+
+    FloatView f = {0};
+    f.f32 = strtof(num_string, NULL);
+    FloatView f1 = {0};
+    int increment_index = GetIncrementIndex(num_string);
+    while(IncrementStringNum(num_string, increment_index)) {
+        f1.f32 = strtof(num_string, NULL);
+        int8_t same = (f.f32 == f1.f32);
+        if(same) {
+            printf("%s is same as previous\n", num_string);
+            PrintFloatBits(f, 5);
+            break;
+        }
+        f.f32 = f1.f32;
+    }
+    printf("done...\n");
 
     return 0;
 }
