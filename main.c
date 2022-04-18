@@ -236,8 +236,9 @@ void TestPrecision(num_digits, exponent) {
 
 int main() {
 
-    // TestPrecision(7, 8);
+    TestPrecision(7, 8);
 
+    // Explore fail points here
     FloatView f = {0};
     f.f32 = 9.999998e8;
     PrintFloatBits(f, 5);
