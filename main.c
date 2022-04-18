@@ -158,7 +158,7 @@ int IncrementStringNum(char* num, int index) {
 }
 
 char* CreateScinoteString(int num_digits, int exponent) {
-    assert(num_digits > 1);
+    assert(num_digits > 0);
 
     // Figure out how many digits are in the exponent
     int temp_exponent = exponent;
@@ -167,8 +167,9 @@ char* CreateScinoteString(int num_digits, int exponent) {
         ++num_exponent_digits;
         temp_exponent /= 10;
     }
-    // Allocate 3 extra chars for ., e, and null term
-    int num_chars = num_digits + num_exponent_digits + 3;
+    // Allocate 3 extra chars for ., e, null term, and maybe one for negative
+    int exponent_is_negative = exponent < 0;
+    int num_chars = num_digits + num_exponent_digits + 3 + exponent_is_negative;
     char* s = calloc(num_chars, sizeof(char));
     if(!s) {
         return NULL;
@@ -180,9 +181,15 @@ char* CreateScinoteString(int num_digits, int exponent) {
     s[1] = '.';
 
     num_chars -= 2;
+    if(exponent_is_negative) {
+        exponent *= -1;
+    }
     while(exponent) {
         s[num_chars--] = (exponent % 10) + '0';
         exponent /= 10;
+    }
+    if(exponent_is_negative) {
+        s[num_chars--] = '-';
     }
     s[num_chars] = 'e';
 
@@ -199,7 +206,7 @@ int GetIncrementIndex(char* num) {
     return i-1;
 }
 
-void TestPrecision(num_digits, exponent) {
+void TestPrecision(int num_digits, int exponent) {
     char* scinote_string = CreateScinoteString(num_digits, exponent);
     if(!scinote_string) {
         printf("Couldn't calloc for scinote_string\n");
@@ -236,15 +243,17 @@ void TestPrecision(num_digits, exponent) {
 
 int main() {
 
-    TestPrecision(7, 8);
+    for(int i = -37; i < 38; ++i) {
+        TestPrecision(7, i);
+    }
 
     // Explore fail points here
-    FloatView f = {0};
-    f.f32 = 9.999998e8;
-    PrintFloatBits(f, 5);
-    f.f32 = 9.999999e8;
-    PrintFloatBits(f, 5);
-    // f.f32 = 1.3421776e8;
+    // FloatView f = {0};
+    // f.f32 = 8.589973e9;
+    // PrintFloatBits(f, 5);
+    // f.f32 = 8.589933e9;
+    // PrintFloatBits(f, 5);
+    // f.mantissa++;
     // PrintFloatBits(f, 5);
 
     return 0;
