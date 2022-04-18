@@ -157,37 +157,34 @@ int IncrementStringNum(char* num, int index) {
     }
 }
 
-char* CreateExpString(int num_digits, int exp) {
+char* CreateScinoteString(int num_digits, int exponent) {
     assert(num_digits > 1);
 
-    int temp_exp = exp;
-    int num_exp_digits = 0;
-    while(temp_exp) {
-        ++num_exp_digits;
-        temp_exp /= 10;
+    // Figure out how many digits are in the exponent
+    int temp_exponent = exponent;
+    int num_exponent_digits = 0;
+    while(temp_exponent) {
+        ++num_exponent_digits;
+        temp_exponent /= 10;
     }
-    
-    int num_chars = num_digits + num_exp_digits + 3;
-    char* s = malloc(sizeof(char) * num_chars);
+    // Allocate 3 extra chars for ., e, and null term
+    int num_chars = num_digits + num_exponent_digits + 3;
+    char* s = calloc(num_chars, sizeof(char));
     if(!s) {
         return NULL;
     }
 
-    s[--num_chars] = '\0';
-    num_chars--;
-    while(exp) {
-        s[num_chars--] = (exp % 10) + '0';
-        exp /= 10;
-    }
-    s[num_chars] = 'e';
-
+    // Fill entire string with '0' char to start
+    memset(s, '0', num_chars - 1);
     s[0] = '1';
     s[1] = '.';
-    int i = 2;
-    while(s[i] != 'e') {
-        s[i] = '0';
-        ++i;
+
+    num_chars -= 2;
+    while(exponent) {
+        s[num_chars--] = (exponent % 10) + '0';
+        exponent /= 10;
     }
+    s[num_chars] = 'e';
 
     return s;
 }
@@ -202,27 +199,52 @@ int GetIncrementIndex(char* num) {
     return i-1;
 }
 
-int main() {
-    int num_digits = 8;
-    int exp = 9;
-    char* num_string = CreateExpString(num_digits, exp);
-    int num_string_len = strlen(num_string);
+void TestPrecision(num_digits, exponent) {
+    char* scinote_string = CreateScinoteString(num_digits, exponent);
+    if(!scinote_string) {
+        printf("Couldn't calloc for scinote_string\n");
+        return;
+    }
+    int scinote_string_len = strlen(scinote_string);
+    char* prev_scinote_string = calloc(scinote_string_len + 1, sizeof(char));
+    if(!prev_scinote_string) {
+        printf("Couldn't calloc for prev_scinote_string\n");
+        return;
+    }
+    memcpy(prev_scinote_string, scinote_string, scinote_string_len);
 
+    FloatView prev_f = {0};
+    prev_f.f32 = strtof(scinote_string, NULL);
     FloatView f = {0};
-    f.f32 = strtof(num_string, NULL);
-    FloatView f1 = {0};
-    int increment_index = GetIncrementIndex(num_string);
-    while(IncrementStringNum(num_string, increment_index)) {
-        f1.f32 = strtof(num_string, NULL);
-        int8_t same = (f.f32 == f1.f32);
-        if(same) {
-            printf("%s is same as previous\n", num_string);
+
+    int increment_index = GetIncrementIndex(scinote_string);
+    printf("Searching %d digits of precision from %s...\n\n", num_digits, scinote_string);
+    while(IncrementStringNum(scinote_string, increment_index)) {
+        f.f32 = strtof(scinote_string, NULL);
+        if(f.f32 == prev_f.f32) {
+            printf("Both %s and %s map to:\n", prev_scinote_string, scinote_string);
             PrintFloatBits(f, 5);
             break;
         }
-        f.f32 = f1.f32;
+
+        memcpy(prev_scinote_string, scinote_string, scinote_string_len);
+        prev_f.f32 = f.f32;
     }
-    printf("done...\n");
+
+    printf("\ndone...\n\n");
+}
+
+int main() {
+
+    // TestPrecision(7, 8);
+
+    FloatView f = {0};
+    f.f32 = 9.999998e8;
+    PrintFloatBits(f, 5);
+    f.f32 = 9.999999e8;
+    PrintFloatBits(f, 5);
+    // f.f32 = 1.3421776e8;
+    // PrintFloatBits(f, 5);
 
     return 0;
 }
