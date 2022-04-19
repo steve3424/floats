@@ -197,6 +197,15 @@ int ScinoteString_GetIncrementIndex(char* num) {
     return i-1;
 }
 
+// This function creates a scientific notation string
+// based on num_digits and power of 10 exponent and
+// iterates through. For example:
+// num_digits = 5, exponent = 6
+// will generate a string of '1.0000e6' and iterate
+// through every number until it reaches '9.9999e6' and
+// convert all strings into floats. If any 2 neighboring
+// floats map to the same IEEE representation, then in that
+// power of 10 range we don't have num_digits of precision.
 void TestPrecision(int num_digits, int exponent) {
     char* scinote_string = ScinoteString_Create(num_digits, exponent);
     if(!scinote_string) {
