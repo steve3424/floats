@@ -206,6 +206,7 @@ int ScinoteString_GetIncrementIndex(char* num) {
 // convert all strings into floats. If any 2 neighboring
 // floats map to the same IEEE representation, then in that
 // power of 10 range we don't have num_digits of precision.
+// This stops once it finds the first failure point.
 void TestPrecision(int num_digits, int exponent) {
     char* scinote_string = ScinoteString_Create(num_digits, exponent);
     if(!scinote_string) {
