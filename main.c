@@ -225,7 +225,7 @@ void TestPrecision(int num_digits, int exponent) {
     FloatView f = {0};
 
     int increment_index = GetIncrementIndex(scinote_string);
-    printf("Searching %d digits of precision from %s...\n\n", num_digits, scinote_string);
+    printf("Testing %d digits of precision from %s...\n\n", num_digits, scinote_string);
     while(IncrementStringNum(scinote_string, increment_index)) {
         f.f32 = strtof(scinote_string, NULL);
         if(f.f32 == prev_f.f32) {
@@ -239,22 +239,30 @@ void TestPrecision(int num_digits, int exponent) {
     }
 
     printf("\ndone...\n\n");
+
+    free(scinote_string);
+    free(prev_scinote_string);
 }
 
 int main() {
 
-    for(int i = -37; i < 38; ++i) {
-        TestPrecision(7, i);
-    }
+    TestPrecision(7, 10);
+    // for(int i = 21; i < 38; ++i) {
+    //     TestPrecision(7, i);
+    // }
 
-    // Explore fail points here
-    // FloatView f = {0};
-    // f.f32 = 8.589973e9;
-    // PrintFloatBits(f, 5);
-    // f.f32 = 8.589933e9;
-    // PrintFloatBits(f, 5);
-    // f.mantissa++;
-    // PrintFloatBits(f, 5);
+    // Look at upper part of k ranges to 
+    // see the largest diff between floats
+    char* s = "9.999900e10";
+    FloatView f = {0};
+    f.f32 = strtof(s, NULL);
+    printf("%s\n", s);
+    PrintFloatBits(f, 5);
+    while(IncrementStringNum(s, GetIncrementIndex(s))) {
+        printf("%s\n", s);
+        f.f32 = strtof(s, NULL);
+        PrintFloatBits(f, 5);
+    }
 
     return 0;
 }
