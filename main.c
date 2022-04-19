@@ -4,7 +4,8 @@
 #include <string.h>
 #include <assert.h>
 
-#define MAX_MANTISSA 16777215LL
+#define FLOAT_MAX_MANTISSA 16777215LL
+#define DOUBLE_MAX_MANTISSA 4503599627370495LL
 
 typedef struct {
     union {
@@ -30,17 +31,19 @@ typedef struct {
     };
 } DoubleView;
 
-void ToggleBitf(uint8_t bit_num, FloatView* f) {
+void FloatView_ToggleBit(FloatView* f, uint8_t bit_num) {
     assert(bit_num < 32);
+
     f->i32 = f->i32 ^ (1 << bit_num);    
 }
 
-void ToggleBitd(uint64_t bit_num, DoubleView* d) {
+void DoubleView_ToggleBit(DoubleView* d, uint8_t bit_num) {
     assert(bit_num < 64);
+
     d->i64 = d->i64 ^ ((uint64_t)1 << bit_num);    
 }
 
-void PrintDoubleBits(DoubleView d, uint16_t decimal_places) {
+void DoubleView_PrintBits(DoubleView d, uint16_t decimal_places) {
     // Print actual float number
     printf("%0.*f\n", decimal_places, d.f64);
 
@@ -62,22 +65,9 @@ void PrintDoubleBits(DoubleView d, uint16_t decimal_places) {
     // Print text
     printf(d.sign ? " -  " : " +  ");
 
-    int16_t exponent_value_biased = d.exponent - 1023;
-    if(d.exponent == 0) {
-        exponent_value_biased = -1022;
-    }
+    int16_t exponent_value_biased = d.exponent ? d.exponent - 1023 : -1022;
 
-    // Print different number of spaces based on number of decimal digits in biased exponent
     printf("   2^%d     ", exponent_value_biased);
-    // if(exponent_value_biased < 10) {
-    //     printf("   2^%d     ", exponent_value_biased);
-    // }
-    // else if(exponent_value_biased < 100) {
-    //     printf("   2^%d    ", exponent_value_biased);
-    // }
-    // else {
-    //     printf("   2^%d   ", exponent_value_biased);
-    // }
     double two_to_the_negative_52 = 0.00000000000000022204460492503130808472633361816;
     double decimal_part = (double)d.mantissa * two_to_the_negative_52;
     if(d.exponent != 0) {
@@ -88,7 +78,7 @@ void PrintDoubleBits(DoubleView d, uint16_t decimal_places) {
     printf("\n");
 }
 
-void PrintFloatBits(FloatView f, uint16_t decimal_places) {
+void FloatView_PrintBits(FloatView f, uint16_t decimal_places) {
     // Print actual float number
     printf("%0.*f\n", decimal_places, f.f32);
 
@@ -109,10 +99,7 @@ void PrintFloatBits(FloatView f, uint16_t decimal_places) {
     // // Print text
     printf(f.sign ? " -  " : " +  ");
 
-    int8_t exponent_value_biased = f.exponent - 127;
-    if(f.exponent == 0) {
-        exponent_value_biased = -126;
-    }
+    int8_t exponent_value_biased = f.exponent ? f.exponent - 127 : -126;
 
     // Print different number of spaces based on number of decimal digits in biased exponent
     if(exponent_value_biased < 10) {
@@ -135,16 +122,16 @@ void PrintFloatBits(FloatView f, uint16_t decimal_places) {
     printf("\n");
 }
 
-int IncrementStringNum(char* num, int index) {
+int ScinoteString_Increment(char* num, int index) {
     if(num[index] == '.') {
-        return IncrementStringNum(num, index - 1);
+        return ScinoteString_Increment(num, index - 1);
     }
     else if(num[index] == '9') {
         if(index == 0) {
             return 0;
         }
         else {
-            int ret = IncrementStringNum(num, index - 1);
+            int ret = ScinoteString_Increment(num, index - 1);
             if(ret) {
                 num[index] = '0';
             }
@@ -157,7 +144,7 @@ int IncrementStringNum(char* num, int index) {
     }
 }
 
-char* CreateScinoteString(int num_digits, int exponent) {
+char* ScinoteString_Create(int num_digits, int exponent) {
     assert(num_digits > 0);
 
     // Figure out how many digits are in the exponent
@@ -200,7 +187,7 @@ char* CreateScinoteString(int num_digits, int exponent) {
     return s;
 }
 
-int GetIncrementIndex(char* num) {
+int ScinoteString_GetIncrementIndex(char* num) {
     assert(num);
 
     int i = 0;
@@ -211,7 +198,7 @@ int GetIncrementIndex(char* num) {
 }
 
 void TestPrecision(int num_digits, int exponent) {
-    char* scinote_string = CreateScinoteString(num_digits, exponent);
+    char* scinote_string = ScinoteString_Create(num_digits, exponent);
     if(!scinote_string) {
         printf("Couldn't calloc for scinote_string\n");
         return;
@@ -228,13 +215,13 @@ void TestPrecision(int num_digits, int exponent) {
     prev_f.f32 = strtof(scinote_string, NULL);
     FloatView f = {0};
 
-    int increment_index = GetIncrementIndex(scinote_string);
+    int increment_index = ScinoteString_GetIncrementIndex(scinote_string);
     printf("Testing %d digits of precision from %s...\n\n", num_digits, scinote_string);
-    while(IncrementStringNum(scinote_string, increment_index)) {
+    while(ScinoteString_Increment(scinote_string, increment_index)) {
         f.f32 = strtof(scinote_string, NULL);
         if(f.f32 == prev_f.f32) {
             printf("Both %s and %s map to:\n", prev_scinote_string, scinote_string);
-            PrintFloatBits(f, 5);
+            FloatView_PrintBits(f, 5);
             break;
         }
 
@@ -251,9 +238,9 @@ void TestPrecision(int num_digits, int exponent) {
 int main() {
 
     // TestPrecision(7, 10);
-    for(int i = 0; i < 5; ++i) {
-        TestPrecision(7, i);
-    }
+    // for(int i = 0; i < 5; ++i) {
+    //     TestPrecision(7, i);
+    // }
 
     // Look at upper part of k ranges to 
     // see the largest diff between floats
