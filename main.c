@@ -163,10 +163,11 @@ char* CreateScinoteString(int num_digits, int exponent) {
     // Figure out how many digits are in the exponent
     int temp_exponent = exponent;
     int num_exponent_digits = 0;
-    while(temp_exponent) {
+    do {
         ++num_exponent_digits;
         temp_exponent /= 10;
-    }
+    } while(temp_exponent);
+    
     // Allocate 3 extra chars for ., e, null term, and maybe one for negative
     int exponent_is_negative = exponent < 0;
     int num_chars = num_digits + num_exponent_digits + 3 + exponent_is_negative;
@@ -180,14 +181,17 @@ char* CreateScinoteString(int num_digits, int exponent) {
     s[0] = '1';
     s[1] = '.';
 
+    // Subtract 2 to move past null terminator
     num_chars -= 2;
+    // Negative exponent needs to be changed to positive
+    // so the ascii shift in the loop works properly
     if(exponent_is_negative) {
         exponent *= -1;
     }
-    while(exponent) {
+    do {
         s[num_chars--] = (exponent % 10) + '0';
         exponent /= 10;
-    }
+    } while(exponent);
     if(exponent_is_negative) {
         s[num_chars--] = '-';
     }
@@ -246,23 +250,23 @@ void TestPrecision(int num_digits, int exponent) {
 
 int main() {
 
-    TestPrecision(7, 10);
-    // for(int i = 21; i < 38; ++i) {
-    //     TestPrecision(7, i);
-    // }
+    // TestPrecision(7, 10);
+    for(int i = 0; i < 5; ++i) {
+        TestPrecision(7, i);
+    }
 
     // Look at upper part of k ranges to 
     // see the largest diff between floats
-    char* s = "9.999900e10";
-    FloatView f = {0};
-    f.f32 = strtof(s, NULL);
-    printf("%s\n", s);
-    PrintFloatBits(f, 5);
-    while(IncrementStringNum(s, GetIncrementIndex(s))) {
-        printf("%s\n", s);
-        f.f32 = strtof(s, NULL);
-        PrintFloatBits(f, 5);
-    }
+    // char* s = "9.999900e10";
+    // FloatView f = {0};
+    // f.f32 = strtof(s, NULL);
+    // printf("%s\n", s);
+    // PrintFloatBits(f, 5);
+    // while(IncrementStringNum(s, GetIncrementIndex(s))) {
+    //     printf("%s\n", s);
+    //     f.f32 = strtof(s, NULL);
+    //     PrintFloatBits(f, 5);
+    // }
 
     return 0;
 }
