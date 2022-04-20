@@ -122,24 +122,40 @@ void FloatView_PrintBits(FloatView f, uint16_t decimal_places) {
     printf("\n");
 }
 
-int ScinoteString_Increment(char* num, int index) {
-    if(num[index] == '.') {
-        return ScinoteString_Increment(num, index - 1);
+int ScinoteString_Increment(char* num) {
+    // Find where the lowest digit of the scinote string is
+    int increment_index = 0;
+    while(num[increment_index] != 'e' && num[increment_index] != '\0') {
+        ++increment_index;
     }
-    else if(num[index] == '9') {
-        if(index == 0) {
-            return 0;
-        }
-        else {
-            int ret = ScinoteString_Increment(num, index - 1);
-            if(ret) {
-                num[index] = '0';
-            }
-            return ret;
-        }
+    // Move index to the left of 'e' or '\0'
+    --increment_index;
+
+    // Find first digit that isn't 9 so we can increment that
+    // We will set the trailing 9's to 0 after
+    int index = increment_index;
+    while(num[index] == '9' || num[index] == '.') {
+        --index;
+    }
+
+    if(index < 0) {
+        // All 9's, done incrementing
+        return 0;
     }
     else {
         num[index]++;
+
+        // NOTE: index needs to be incremented once before
+        //       this runs so it should be kept as pre-increment
+        //       e.g. for '1.001e9', the last place will already be incremented
+        //       to '1.002e9', so we don't want to change the 2 digit to a '0'. If
+        //       we increment first, then we will move past this and the <= will fail
+        //       as it should as we already dealt with that digit by incrementing.
+        //       If we had moved past this index as in '1.009e9' then we will have
+        //       incremented to '1.019e9', then we will have to change that to a '0'.
+        while(++index <= increment_index) {
+            num[index] = num[index] == '.' ? '.' : '0';
+        }
         return 1;
     }
 }
@@ -187,16 +203,6 @@ char* ScinoteString_Create(int num_digits, int exponent) {
     return s;
 }
 
-int ScinoteString_GetIncrementIndex(char* num) {
-    assert(num);
-
-    int i = 0;
-    while(num[i] != 'e') {
-        ++i;
-    }
-    return i-1;
-}
-
 // This function creates a scientific notation string
 // based on num_digits and power of 10 exponent and
 // iterates through. For example:
@@ -225,9 +231,8 @@ void TestPrecision(int num_digits, int exponent) {
     prev_f.f32 = strtof(scinote_string, NULL);
     FloatView f = {0};
 
-    int increment_index = ScinoteString_GetIncrementIndex(scinote_string);
     printf("Testing %d digits of precision from %s...\n\n", num_digits, scinote_string);
-    while(ScinoteString_Increment(scinote_string, increment_index)) {
+    while(ScinoteString_Increment(scinote_string)) {
         f.f32 = strtof(scinote_string, NULL);
         if(f.f32 == prev_f.f32) {
             printf("Both %s and %s map to:\n", prev_scinote_string, scinote_string);
